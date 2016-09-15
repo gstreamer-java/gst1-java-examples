@@ -17,6 +17,9 @@ public class CameraTest {
     /**
      * @param args the command line arguments
      */
+    
+    private static Pipeline pipe;
+    
     public static void main(String[] args) {
 
         Gst.init("CameraTest", args);
@@ -26,7 +29,7 @@ public class CameraTest {
             public void run() {
                 SimpleVideoComponent vc = new SimpleVideoComponent();
                 Bin bin = Bin.launch("autovideosrc ! videoconvert ! capsfilter caps=video/x-raw,width=640,height=480", true);
-                Pipeline pipe = new Pipeline();
+                pipe = new Pipeline();
                 pipe.addMany(bin, vc.getElement());
                 Pipeline.linkMany(bin, vc.getElement());           
 
