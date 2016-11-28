@@ -17,6 +17,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
+// This example should give an idea how to render a Video provided by the Gstreamer to a frame in JavaFX.
+
 public class GstRenderer extends Application{
 	private ImageView imageView;
 	private AppSink videosink;
@@ -70,15 +72,6 @@ public class GstRenderer extends Application{
 		primaryStage.setTitle("Drawing Operations Test");
 		BorderPane grid = new BorderPane();
 		grid.setCenter(imageView);
-		imageView.viewportProperty().addListener(new ChangeListener<Rectangle2D>() {
-
-			@Override
-			public void changed(ObservableValue<? extends Rectangle2D> observable, Rectangle2D oldValue,
-					Rectangle2D newValue) {
-				System.out.println(newValue);
-			}
-
-		});
 	    imageView.fitWidthProperty().bind(grid.widthProperty()); 
 	    imageView.fitHeightProperty().bind(grid.heightProperty()); 
 	    imageView.setPreserveRatio(true);
@@ -90,9 +83,5 @@ public class GstRenderer extends Application{
         Gst.init("CameraTest",args);
         launch(args);
     }
-	
-	public void print(Image image){
-		imageView.setImage(image);
-	}
 
 }
