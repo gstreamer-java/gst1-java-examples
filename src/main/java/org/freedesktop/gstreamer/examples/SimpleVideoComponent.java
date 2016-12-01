@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2015 Neil C Smith
+ * Copyright (c) 2016 Neil C Smith
  * Copyright (c) 2007 Wayne Meissner
  * 
  * This file is part of gstreamer-java.
@@ -47,6 +47,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.freedesktop.gstreamer.Buffer;
 import org.freedesktop.gstreamer.Caps;
+import org.freedesktop.gstreamer.FlowReturn;
 import org.freedesktop.gstreamer.Sample;
 
 /**
@@ -70,10 +71,17 @@ class SimpleVideoComponent extends javax.swing.JComponent {
      * Creates a new instance of GstVideoComponent
      */
     public SimpleVideoComponent() {
-        videosink = new AppSink("GstVideoComponent");
+        this(new AppSink("GstVideoComponent"));
+    }
+
+    /**
+     * Creates a new instance of GstVideoComponent
+     */
+    public SimpleVideoComponent(AppSink appsink) {
+        this.videosink = appsink;
         videosink.set("emit-signals", true);
         videosink.connect(new AppSinkListener());
-        StringBuilder caps = new StringBuilder("video/x-raw, ");
+        StringBuilder caps = new StringBuilder("video/x-raw,pixel-aspect-ratio=1/1,");
         // JNA creates ByteBuffer using native byte order, set masks according to that.
         if (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN) {
             caps.append("format=BGRx");
@@ -81,7 +89,7 @@ class SimpleVideoComponent extends javax.swing.JComponent {
             caps.append("format=xRGB");
         }
         videosink.setCaps(new Caps(caps.toString()));
-        
+
         useVolatile = true;
 
         // Kick off a timer to free up the volatile image if there have been no recent updates
@@ -122,7 +130,6 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         setOpaque(true);
         setBackground(Color.BLACK);
     }
-
 
     /**
      * Scales the video output component according to its aspect ratio
@@ -396,7 +403,7 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         }
 
         @Override
-        public void newBuffer(AppSink elem) {
+        public FlowReturn newSample(AppSink elem) {
             Sample sample = elem.pullSample();
             Structure capsStruct = sample.getCaps().getStructure(0);
             int w = capsStruct.getInteger("width");
@@ -408,6 +415,8 @@ class SimpleVideoComponent extends javax.swing.JComponent {
                 buffer.unmap();
             }
             sample.dispose();
+            return FlowReturn.OK;
         }
+
     }
 }
