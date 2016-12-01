@@ -47,6 +47,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.freedesktop.gstreamer.Buffer;
 import org.freedesktop.gstreamer.Caps;
+import org.freedesktop.gstreamer.FlowReturn;
 import org.freedesktop.gstreamer.Sample;
 
 /**
@@ -402,7 +403,7 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         }
 
         @Override
-        public void newBuffer(AppSink elem) {
+        public FlowReturn newSample(AppSink elem) {
             Sample sample = elem.pullSample();
             Structure capsStruct = sample.getCaps().getStructure(0);
             int w = capsStruct.getInteger("width");
@@ -414,6 +415,8 @@ class SimpleVideoComponent extends javax.swing.JComponent {
                 buffer.unmap();
             }
             sample.dispose();
+            return FlowReturn.OK;
         }
+
     }
 }
