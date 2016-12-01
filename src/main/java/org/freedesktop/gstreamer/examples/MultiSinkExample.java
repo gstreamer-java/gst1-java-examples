@@ -14,6 +14,9 @@ import org.freedesktop.gstreamer.elements.PlayBin;
 
 /**
  *
+ * An example of playing back a video in multiple sinks - one full size in a native
+ * window, one scaled in a Swing window. Use the File... button to choose a local video file.
+ * 
  * @author Neil C Smith (http://neilcsmith.net)
  */
 public class MultiSinkExample {
