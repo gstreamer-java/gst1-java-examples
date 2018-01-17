@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2016 Neil C Smith
+ * Copyright (c) 2018 Neil C Smith
  * Copyright (c) 2007 Wayne Meissner
  * 
  * This file is part of gstreamer-java.
@@ -24,6 +24,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -80,7 +81,9 @@ class SimpleVideoComponent extends javax.swing.JComponent {
     public SimpleVideoComponent(AppSink appsink) {
         this.videosink = appsink;
         videosink.set("emit-signals", true);
-        videosink.connect(new AppSinkListener());
+        AppSinkListener listener = new AppSinkListener();
+        videosink.connect((AppSink.NEW_SAMPLE) listener);
+        videosink.connect((AppSink.NEW_PREROLL) listener);
         StringBuilder caps = new StringBuilder("video/x-raw,pixel-aspect-ratio=1/1,");
         // JNA creates ByteBuffer using native byte order, set masks according to that.
         if (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN) {
@@ -210,7 +213,8 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         protected void paintComponent(Graphics g) {
             int width = getWidth(), height = getHeight();
             Graphics2D g2d = (Graphics2D) g.create();
-
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             if (currentImage != null) {
                 GraphicsConfiguration gc = getGraphicsConfiguration();
                 render(g2d, 0, 0, width, height);
@@ -363,7 +367,7 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         return currentImage;
     }
 
-    private class AppSinkListener implements AppSink.NEW_SAMPLE {
+    private class AppSinkListener implements AppSink.NEW_SAMPLE, AppSink.NEW_PREROLL {
 
         public void rgbFrame(boolean isPrerollFrame, int width, int height, IntBuffer rgb) {
             // If the EDT is still copying data from the buffer, just drop this frame
@@ -405,6 +409,22 @@ class SimpleVideoComponent extends javax.swing.JComponent {
         @Override
         public FlowReturn newSample(AppSink elem) {
             Sample sample = elem.pullSample();
+            Structure capsStruct = sample.getCaps().getStructure(0);
+            int w = capsStruct.getInteger("width");
+            int h = capsStruct.getInteger("height");
+            Buffer buffer = sample.getBuffer();
+            ByteBuffer bb = buffer.map(false);
+            if (bb != null) {
+                rgbFrame(false, w, h, bb.asIntBuffer());
+                buffer.unmap();
+            }
+            sample.dispose();
+            return FlowReturn.OK;
+        }
+
+        @Override
+        public FlowReturn newPreroll(AppSink elem) {
+            Sample sample = elem.pullPreroll();
             Structure capsStruct = sample.getCaps().getStructure(0);
             int w = capsStruct.getInteger("width");
             int h = capsStruct.getInteger("height");
