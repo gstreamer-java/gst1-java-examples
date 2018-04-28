@@ -1,3 +1,15 @@
+/*
+ * This example shows how to use the various gstreamer mechanisms to 
+ * 1) read from an RTSP stream
+ * 2) put it into a time delaying queue so that the sample that arrives at 
+ *    a sink is footage captured 5 seconds ago,
+ * 3) place the sample into an AppSink which can discard or collect it into 
+ *    a Java queue
+ * 4) at the user's discretion, start reading the samples from the Java queue
+ * 5) encode the samples into an MP4 stream
+ * 6) write the stream to a file using FileSink using a filename that is based 
+ *    on the current time.
+ */
 package org.freedesktop.gstreamer.examples;
 
 import java.net.URI;
@@ -20,6 +32,7 @@ import org.freedesktop.gstreamer.elements.PlayBin;
 import org.freedesktop.gstreamer.event.EOSEvent;
 
 public class TestFootageCapture {
+	// Size of Java queue
 	private final static int BUFFER_SIZE = 1000000;
 	
 	private static boolean sendData = false;
@@ -39,6 +52,7 @@ public class TestFootageCapture {
 		
 		Scanner s = new Scanner(System.in);
 
+		// The time delaying queue is specified below
         Bin videoBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=videoAppSink", true);
         Bin audioBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=audioAppSink", true);
 
@@ -52,6 +66,7 @@ public class TestFootageCapture {
         AppSinkListener audioAppSinkListener = new AppSinkListener(audioQueue,audioCaps,gotCaps);
         audioAppSink.connect((AppSink.NEW_SAMPLE) audioAppSinkListener);   
 
+        // Specify rtsp url below
         PlayBin playbin = new PlayBin("playbin");
         playbin.setURI(URI.create("rtsp://ip:port/uri"));
         playbin.setVideoSink(videoBin);
@@ -76,7 +91,8 @@ public class TestFootageCapture {
         playbin.play();
 		
 		System.out.println("Processing of RTSP feed started, please wait...");
-				
+		
+		// Pipeline below encodes and writes samples to MP4 file
 		Pipeline pipeline = Pipeline.launch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
@@ -112,6 +128,8 @@ public class TestFootageCapture {
 //			System.out.println("Bus Message : "+message.getStructure());			
 //		});
 		
+		// Get caps from original video stream and copy them into both
+		// the AppSrcs.
 		gotCaps.acquire(2);
 		videoAppSrc.setCaps(new Caps(videoCaps.toString()));
 		audioAppSrc.setCaps(new Caps(audioCaps.toString()));
@@ -124,11 +142,14 @@ public class TestFootageCapture {
 			if (!s.nextLine().isEmpty())
 				break;
 	
+			// Specify filename of MP4 file based on current time
 			BaseSink filesink = (BaseSink) pipeline.getElementByName("filesink");
 			filesink.set("location", "capture"+System.currentTimeMillis()+".mp4");
 	
+			// Clear any unread buffers from previous capture from the Java queues
 			clearQueue(videoQueue);
 			clearQueue(audioQueue);
+			
 			videoAppSrcListener.resetSendFlagged();
 			audioAppSrcListener.resetSendFlagged();
 			
@@ -136,6 +157,8 @@ public class TestFootageCapture {
 			canSend.drainPermits();
 	        pipeline.play();
 	
+	        // Make sure that both video and audio buffers are streamed out at the same time
+	        // otherwise you get video or sound first.
 			canSend.acquire(2);
 			sendData = true;
 	
@@ -195,7 +218,6 @@ public class TestFootageCapture {
             	gotCaps.release();
             }
             
-            // * BEGINNING OF SECTION *
             // This section will be executed only when the sample needs to be passed to the src
             // When sendData is true, the sample's buffer will be duplicated using buffer.copy
             // and offered to the respective queue (videoQueue or audioQueue).
@@ -207,8 +229,8 @@ public class TestFootageCapture {
             		buffer.dispose();
             }
 
-            // * END OF SECTION *
             sample.dispose();
+            
             return FlowReturn.OK;		
 		}
 	}
