@@ -6,6 +6,7 @@
  * 3) place the sample into an AppSink which can discard or collect it into 
  *    a Java queue
  * 4) at the user's discretion, start reading the samples from the Java queue
+ *    using an AppSrc
  * 5) encode the samples into an MP4 stream
  * 6) write the stream to a file using FileSink using a filename that is based 
  *    on the current time.
@@ -190,6 +191,7 @@ public class TestFootageCapture {
 			buffer = queue.poll();
 			if (buffer==null)
 				break;
+    		buffer.dispose();
 		}
 		while (true);
 	}
