@@ -94,6 +94,8 @@ public class TestFootageCapture {
 		System.out.println("Processing of RTSP feed started, please wait...");
 		
 		// Pipeline below encodes and writes samples to MP4 file
+		// You must ensure the following plugins are available to your gstreamer
+		// installation : x264enc, h264parse, mpegtsmux, faac, aacparse
 		Pipeline pipeline = Pipeline.launch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
@@ -102,7 +104,7 @@ public class TestFootageCapture {
 				"! filesink sync=false name=filesink "+
 				"appsrc name=audioAppSrc "+
 				"! rawaudioparse use-sink-caps=true "+
-				"! audioconvert ! voaacenc ! aacparse ! mux. "
+				"! audioconvert ! faac ! aacparse ! mux. "
 		);
 
         AppSrc videoAppSrc = (AppSrc) pipeline.getElementByName("videoAppSrc");
@@ -186,14 +188,7 @@ public class TestFootageCapture {
 	}
 	
 	private static void clearQueue(ArrayBlockingQueue<Buffer> queue) {
-		Buffer buffer;
-		do {
-			buffer = queue.poll();
-			if (buffer==null)
-				break;
-    		buffer.dispose();
-		}
-		while (true);
+		queue.clear();
 	}
 	
 	private static class AppSinkListener implements AppSink.NEW_SAMPLE {
@@ -223,12 +218,13 @@ public class TestFootageCapture {
             // This section will be executed only when the sample needs to be passed to the src
             // When sendData is true, the sample's buffer will be duplicated using buffer.copy
             // and offered to the respective queue (videoQueue or audioQueue).
-            // If the buffer's copy cannot be inserted to the queue, it will be disposed
+            // Buffer's copy must disown the native object held by original buffer
+            // otherwise a jna error will be issued.
 
             if (sendData) {
             	Buffer buffer = sample.getBuffer().copy();
-            	if (!queue.offer(buffer))
-            		buffer.dispose();
+            	buffer.disown();
+            	queue.offer(buffer);
             }
 
             sample.dispose();
