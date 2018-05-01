@@ -1,15 +1,13 @@
 /*
- * This example shows how to use the various gstreamer mechanisms to
- * 1) read from an RTSP stream
- * 2) put it into a time delaying queue so that the sample that arrives at
- *    a sink is footage captured 5 seconds ago,
- * 3) place the sample into an AppSink which can discard or collect it into
- *    a Java queue
- * 4) at the user's discretion, start reading the samples from the Java queue
- *    using an AppSrc
- * 5) encode the samples into an MP4 stream
- * 6) write the stream to a file using FileSink using a filename that is based
- *    on the current time.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Copyright 2018 Tend Wong.
+ *
+ * Copying and distribution of this file, with or without modification,
+ * are permitted in any medium without royalty provided the copyright
+ * notice and this notice are preserved.    This file is offered as-is,
+ * without any warranty.
+ *
  */
 package org.freedesktop.gstreamer.examples;
 
@@ -17,6 +15,7 @@ import java.net.URI;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.freedesktop.gstreamer.Bin;
 import org.freedesktop.gstreamer.Buffer;
@@ -32,6 +31,21 @@ import org.freedesktop.gstreamer.elements.BaseSink;
 import org.freedesktop.gstreamer.elements.PlayBin;
 import org.freedesktop.gstreamer.event.EOSEvent;
 
+/**
+ * This example shows how to use the various gstreamer mechanisms to
+ * 1) read from an RTSP stream
+ * 2) put it into a time delaying queue so that the sample that arrives at
+ *    a sink is footage captured 5 seconds ago,
+ * 3) place the sample into an AppSink which can discard or collect it into
+ *    a Java queue
+ * 4) at the user's discretion, start reading the samples from the Java queue
+ *    using an AppSrc
+ * 5) encode the samples into an MP4 stream
+ * 6) write the stream to a file using FileSink using a filename that is based
+ *    on the current time.
+ *
+ * @author Tend Wong
+ */
 public class TestFootageCapture {
 	// Size of Java queue
 	private final static int BUFFER_SIZE = 1000000;
@@ -53,7 +67,8 @@ public class TestFootageCapture {
 
 		Scanner s = new Scanner(System.in);
 
-		// The time delaying queue is specified below
+		// The time delaying queue is specified below. Specify a different value or take out the queue
+		// completely for real time capture.
 		Bin videoBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=videoAppSink",true);
 		Bin audioBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=audioAppSink",true);
 
@@ -93,27 +108,62 @@ public class TestFootageCapture {
 
 		System.out.println("Processing of RTSP feed started, please wait...");
 
+		Pipeline pipeline = null;
+		AppSrc videoAppSrc = null;
+		AppSrc audioAppSrc = null;
+		AppSrcListener videoAppSrcListener = null;
+		AppSrcListener audioAppSrcListener = null;
+
+		// Get caps from original video and audio stream and copy them into
+		// the respective AppSrcs. If RTSP stream has no audio, the
+		// gotCaps.tryAcquire will timeout and audioCaps will be empty.
+		gotCaps.acquire(1);
+		gotCaps.tryAcquire(5, TimeUnit.SECONDS);
+
 		// Pipeline below encodes and writes samples to MP4 file
 		// You must ensure the following plugins are available to your gstreamer
 		// installation : x264enc, h264parse, mpegtsmux, faac, aacparse
-		Pipeline pipeline = Pipeline.launch("appsrc name=videoAppSrc "
-				+ "! rawvideoparse use-sink-caps=true "
-				+ "! videoconvert ! x264enc ! h264parse "
-				+ "! mpegtsmux name=mux "
-				+ "! filesink sync=false name=filesink "
-				+ "appsrc name=audioAppSrc "
-				+ "! rawaudioparse use-sink-caps=true "
-				+ "! audioconvert ! faac ! aacparse ! mux. ");
 
-		AppSrc videoAppSrc = (AppSrc) pipeline.getElementByName("videoAppSrc");
-		AppSrc audioAppSrc = (AppSrc) pipeline.getElementByName("audioAppSrc");
+		// If your RTSP feed has no audio, a different pipeline will be used that
+		// encodes a video only MP4 file.
+		boolean hasAudio = (audioCaps.length()>0);
+		if (hasAudio) {
+			pipeline = Pipeline.launch(
+				"appsrc name=videoAppSrc "+
+				"! rawvideoparse use-sink-caps=true "+
+				"! videoconvert ! x264enc ! h264parse "+
+				"! mpegtsmux name=mux "+
+				"! filesink sync=false name=filesink "+
+				"appsrc name=audioAppSrc "+
+				"! rawaudioparse use-sink-caps=true "+
+				"! audioconvert ! faac ! aacparse ! mux. "
+			);
+
+			audioAppSrc = (AppSrc) pipeline.getElementByName("audioAppSrc");
+			audioAppSrc.setCaps(new Caps(audioCaps.toString()));
+			audioAppSrc.set("emit-signals", true);
+
+			audioAppSrcListener = new AppSrcListener(audioQueue,canSend);
+			audioAppSrc.connect((AppSrc.NEED_DATA) audioAppSrcListener);
+		}
+		else {
+			System.out.println("RTSP stream has no audio.");
+
+			pipeline = Pipeline.launch(
+				"appsrc name=videoAppSrc "+
+				"! rawvideoparse use-sink-caps=true "+
+				"! videoconvert ! x264enc ! h264parse "+
+				"! mpegtsmux name=mux "+
+				"! filesink sync=false name=filesink "
+			);
+		}
+
+		videoAppSrc = (AppSrc) pipeline.getElementByName("videoAppSrc");
+		videoAppSrc.setCaps(new Caps(videoCaps.toString()));
 		videoAppSrc.set("emit-signals", true);
-		audioAppSrc.set("emit-signals", true);
 
-		AppSrcListener videoAppSrcListener = new AppSrcListener(videoQueue,canSend);
+		videoAppSrcListener = new AppSrcListener(videoQueue,canSend);
 		videoAppSrc.connect((AppSrc.NEED_DATA) videoAppSrcListener);
-		AppSrcListener audioAppSrcListener = new AppSrcListener(audioQueue,canSend);
-		audioAppSrc.connect((AppSrc.NEED_DATA) audioAppSrcListener);
 
 		pipeline.getBus().connect((Bus.EOS) (source) -> {
 			System.out.println("Received the EOS on the pipeline!!!");
@@ -129,15 +179,6 @@ public class TestFootageCapture {
 		// System.out.println("Bus Message : "+message.getStructure());
 		// });
 
-		// Get caps from original video stream and copy them into both
-		// the AppSrcs.
-		gotCaps.acquire(2);
-		videoAppSrc.setCaps(new Caps(videoCaps.toString()));
-		audioAppSrc.setCaps(new Caps(audioCaps.toString()));
-
-		// System.out.println("VIDEO CAPS : "+videoCaps.toString());
-		// System.out.println("AUDIO CAPS : "+audioCaps.toString());
-
 		while (true) {
 			System.out.println("Press ENTER to start capturing footage from the cam 5 seconds ago, or type 'QUIT' and press ENTER to exit...");
 			if (!s.nextLine().isEmpty())
@@ -147,22 +188,21 @@ public class TestFootageCapture {
 			BaseSink filesink = (BaseSink) pipeline.getElementByName("filesink");
 			filesink.set("location", "capture" + System.currentTimeMillis() + ".mp4");
 
-			// Clear any unread buffers from previous capture from the Java
-			// queues
+			// Clear any unread buffers from previous capture in the Java queues
+			if (hasAudio) {
+				clearQueue(audioQueue);
+				audioAppSrcListener.resetSendFlagged();
+			}
 			clearQueue(videoQueue);
-			clearQueue(audioQueue);
-
 			videoAppSrcListener.resetSendFlagged();
-			audioAppSrcListener.resetSendFlagged();
 
 			gotEOSPipeline.drainPermits();
 			canSend.drainPermits();
 			pipeline.play();
 
 			// Make sure that both video and audio buffers are streamed out at
-			// the same time
-			// otherwise you get video or sound first.
-			canSend.acquire(2);
+			// the same time otherwise you get video or sound first.
+			canSend.acquire(hasAudio ? 2 : 1);
 			sendData = true;
 
 			System.out.println("Press ENTER to stop the capture...");
@@ -216,13 +256,12 @@ public class TestFootageCapture {
 			}
 
 			// This section will be executed only when the sample needs to be
-			// passed to the src
+			// passed to the src.
 			// When sendData is true, the sample's buffer will be duplicated
-			// using buffer.copy
-			// and offered to the respective queue (videoQueue or audioQueue).
+			// using buffer.copy and offered to the respective queue
+			// (videoQueue or audioQueue).
 			// Buffer's copy must disown the native object held by original
-			// buffer
-			// otherwise a jna error will be issued.
+			// buffer otherwise a jna error will be issued.
 
 			if (sendData) {
 				Buffer buffer = sample.getBuffer().copy();
