@@ -14,7 +14,7 @@
         <dependency>
             <groupId>org.freedesktop.gstreamer</groupId>
             <artifactId>gst1-java-core</artifactId>
-            <version>[0.9.2,1.0)</version>
+            <version>[0.9.3,1.0)</version>
         </dependency>
     </dependencies>
     <properties>

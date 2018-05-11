@@ -12,18 +12,13 @@
 package org.freedesktop.gstreamer.examples;
 
 
-import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-import javax.swing.JFrame;
-import org.freedesktop.gstreamer.Bin;
 import org.freedesktop.gstreamer.Buffer;
 import org.freedesktop.gstreamer.Bus;
 import org.freedesktop.gstreamer.Element;
@@ -31,12 +26,10 @@ import org.freedesktop.gstreamer.ElementFactory;
 import org.freedesktop.gstreamer.FlowReturn;
 import org.freedesktop.gstreamer.Gst;
 import org.freedesktop.gstreamer.GstObject;
-import org.freedesktop.gstreamer.Message;
 import org.freedesktop.gstreamer.Pad;
-import org.freedesktop.gstreamer.PadLinkReturn;
+import org.freedesktop.gstreamer.PadLinkException;
 import org.freedesktop.gstreamer.Pipeline;
 import org.freedesktop.gstreamer.Sample;
-import org.freedesktop.gstreamer.State;
 import org.freedesktop.gstreamer.elements.AppSink;
 import org.freedesktop.gstreamer.elements.AppSrc;
 import org.freedesktop.gstreamer.lowlevel.MainLoop;
@@ -186,11 +179,11 @@ public class AppSrcToAppSinkExample {
                 System.out.println("Pad name: " + pad.getName());
                 System.out.println("Pad type: " + pad.getTypeName());
                 Pad sinkPad = converter.getStaticPad("sink");
-                PadLinkReturn ret = pad.link(sinkPad);
-                if (ret.equals(PadLinkReturn.OK)){
+                try {
+                    pad.link(sinkPad);
                     System.out.println("Pad linked.");
-                } else {
-                    System.out.println("Pad link failed");
+                } catch (PadLinkException ex) {
+                    System.out.println("Pad link failed : " + ex.getLinkResult());
                 }
             }
 
