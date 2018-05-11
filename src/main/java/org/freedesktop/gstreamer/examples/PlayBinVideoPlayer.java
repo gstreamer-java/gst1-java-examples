@@ -125,7 +125,7 @@ public class PlayBinVideoPlayer {
             window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             // listen for level messages on the bus
-            playbin.getBus().connect(new Bus.MESSAGE() {
+            playbin.getBus().connect("element", new Bus.MESSAGE() {
 
                 @Override
                 public void busMessage(Bus arg0, Message message) {
