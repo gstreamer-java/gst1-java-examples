@@ -131,7 +131,7 @@ public class TestFootageCapture {
 			pipeline = Pipeline.launch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
-				"! videoconvert ! x264enc ! h264parse "+
+				"! videoconvert ! x264enc speed-preset=ultrafast ! h264parse "+
 				"! mpegtsmux name=mux "+
 				"! filesink sync=false name=filesink "+
 				"appsrc name=audioAppSrc "+
@@ -152,7 +152,7 @@ public class TestFootageCapture {
 			pipeline = Pipeline.launch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
-				"! videoconvert ! x264enc ! h264parse "+
+				"! videoconvert ! x264enc speed-preset=ultrafast ! h264parse "+
 				"! mpegtsmux name=mux "+
 				"! filesink sync=false name=filesink "
 			);
