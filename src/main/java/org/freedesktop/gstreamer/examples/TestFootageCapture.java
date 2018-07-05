@@ -48,7 +48,7 @@ import org.freedesktop.gstreamer.event.EOSEvent;
  */
 public class TestFootageCapture {
 	// Size of Java queue
-	private final static int BUFFER_SIZE = 1000000;
+	private final static int BUFFER_SIZE = 100;
 
 	private static boolean sendData = false;
 	private static ArrayBlockingQueue<Buffer> videoQueue = new ArrayBlockingQueue<Buffer>(BUFFER_SIZE);

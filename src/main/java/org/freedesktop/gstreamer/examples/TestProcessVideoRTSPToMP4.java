@@ -15,9 +15,11 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.File;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Semaphore;
@@ -40,21 +42,15 @@ import org.freedesktop.gstreamer.event.EOSEvent;
 
 /**
  * This example shows how to use the various gstreamer mechanisms to
- * 1) read from an RTSP stream
- * 2) process each frame of the stream by drawing directly onto it
- * 3) encode the processed frames into an MP4 stream
- *
- * Note that this example only processes video and leaves audio out of the MP4.
- * The reason for this is that the video process may cause dropped frames
- * which causes the video and audio to de-sync.
+ * read from an RTSP stream, process it frame by frame, then write the processed
+ * frames to an MP4 file.
  *
  * @author Tend Wong
  */
-public class TestProcessVideo {
-	private final static int BUFFER_SIZE = 1000000;
-	
+public class TestProcessVideoRTSPToMP4 {
 	private static boolean sendData = false;
-	private static ArrayBlockingQueue<Buffer> videoQueue = new ArrayBlockingQueue<Buffer>(BUFFER_SIZE);
+	private static ArrayBlockingQueue<Buffer> videoQueue = new ArrayBlockingQueue<Buffer>(1);
+	
 	private static StringBuffer videoCaps = new StringBuffer();
 	private static Semaphore gotCaps = new Semaphore(2);
 	private static Semaphore canSend = new Semaphore(2);
@@ -64,10 +60,9 @@ public class TestProcessVideo {
 	private static int videoWidth;
 	private static int videoHeight;
 	private static int numPixels;
-	
-	// The processingQueue's size is intentionally set as 1. This means that if the video processing takes too long,
-	/// new frames will be dropped.
+
 	private static ArrayBlockingQueue<FrameInfo> processingQueue = new ArrayBlockingQueue<FrameInfo>(1);
+	
 	private static boolean processData = true;
 	private static ProcessingThread processingThread;
 
@@ -78,7 +73,7 @@ public class TestProcessVideo {
 		
 		Scanner s = new Scanner(System.in);
 
-        Bin videoBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=0 flush-on-eos=true ! appsink name=videoAppSink", true);
+        Bin videoBin = Bin.launch("appsink name=videoAppSink", true);
 
         AppSink videoAppSink = (AppSink) videoBin.getElementByName("videoAppSink");
         videoAppSink.set("emit-signals", true);
@@ -94,7 +89,6 @@ public class TestProcessVideo {
             caps.append("format=xRGB");
         videoAppSink.setCaps(new Caps(caps.toString()));
         
-		// Specify rtsp url below
         PlayBin playbin = new PlayBin("playbin");
 		playbin.setURI(URI.create("rtsp://ip:port/uri"));
         playbin.setVideoSink(videoBin);
@@ -130,12 +124,11 @@ public class TestProcessVideo {
 		AppSrcListener videoAppSrcListener = null;
 		
 		gotCaps.acquire(1);
-		numPixels = videoWidth * videoHeight;
 
 		pipeline = Pipeline.launch(
 			"appsrc name=videoAppSrc "+
 			"! videoconvert ! video/x-raw,format=I420 "+
-			"! x264enc speed-preset=ultrafast ! h264parse "+
+			"! x264enc ! h264parse "+
 			"! mpegtsmux name=mux "+
 			"! filesink name=filesink "
 		);			
@@ -235,6 +228,7 @@ public class TestProcessVideo {
                 Structure capsStruct = sample.getCaps().getStructure(0);
                 videoWidth = capsStruct.getInteger("width");
                 videoHeight = capsStruct.getInteger("height");
+        		numPixels = videoWidth * videoHeight;
 
                 capsSet = true;
             	gotCaps.release();
@@ -256,7 +250,7 @@ public class TestProcessVideo {
         		info.setOffsetEnd(srcBuffer.getOffsetEnd());
         		info.setDecodeTimestamp(srcBuffer.getDecodeTimestamp());
         		info.setPresentationTimestamp(srcBuffer.getPresentationTimestamp());
-        		
+            	
         		queue.offer(info);
         		
             	srcBuffer.unmap();
@@ -368,7 +362,7 @@ public class TestProcessVideo {
     	int y;
     	int dx;
     	int dy;
-    	
+		
 		@Override
 		public void run() {
 			while (processData) {
@@ -378,7 +372,7 @@ public class TestProcessVideo {
 					// Perform processing here, currently all this does
 					// is bounce a rectangle around the edges of the video.
 					// The process should be as quick as possible. If it takes too long,
-					// frames will be skipped and video will look jaggedy.
+					// frames will get skipped and video will look jaggedy.
 					if (image==null) {
 						image = new BufferedImage(videoWidth, videoHeight, BufferedImage.TYPE_INT_RGB);
 						image.setAccelerationPriority(0.0f);
@@ -409,6 +403,7 @@ public class TestProcessVideo {
 					
 	            	Buffer dstBuffer = new Buffer(info.getCapacity());	            	
 	            	dstBuffer.map(true).asIntBuffer().put(destPixels);
+	            	dstBuffer.unmap();
 	            	
 	            	dstBuffer.setFlags(info.getFlags());
 	            	dstBuffer.setDuration(info.getDuration());
@@ -418,8 +413,8 @@ public class TestProcessVideo {
 	            	dstBuffer.setPresentationTimestamp(info.getPresentationTimestamp());
 					
 	            	dstBuffer.disown();
-	            	
-	            	videoQueue.offer(dstBuffer);	            	
+	        		
+	        		videoQueue.put(dstBuffer);
 				}
 				catch (InterruptedException i) {
 					break;
@@ -430,4 +425,5 @@ public class TestProcessVideo {
 			}
 		}
     }
+
 }
