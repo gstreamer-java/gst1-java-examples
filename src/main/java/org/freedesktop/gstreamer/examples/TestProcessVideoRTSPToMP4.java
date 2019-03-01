@@ -26,9 +26,9 @@ import java.util.concurrent.Semaphore;
 
 import org.freedesktop.gstreamer.Bin;
 import org.freedesktop.gstreamer.Buffer;
+import org.freedesktop.gstreamer.BufferFlags;
 import org.freedesktop.gstreamer.Bus;
 import org.freedesktop.gstreamer.Caps;
-import org.freedesktop.gstreamer.ClockTime;
 import org.freedesktop.gstreamer.FlowReturn;
 import org.freedesktop.gstreamer.Gst;
 import org.freedesktop.gstreamer.Pipeline;
@@ -39,6 +39,7 @@ import org.freedesktop.gstreamer.elements.AppSrc;
 import org.freedesktop.gstreamer.elements.BaseSink;
 import org.freedesktop.gstreamer.elements.PlayBin;
 import org.freedesktop.gstreamer.event.EOSEvent;
+import org.freedesktop.gstreamer.glib.NativeFlags;
 
 /**
  * This example shows how to use the various gstreamer mechanisms to
@@ -73,11 +74,12 @@ public class TestProcessVideoRTSPToMP4 {
 		
 		Scanner s = new Scanner(System.in);
 
-        Bin videoBin = Bin.launch("appsink name=videoAppSink", true);
+        Bin videoBin = Gst.parseBinFromDescription("appsink name=videoAppSink", true);
 
         AppSink videoAppSink = (AppSink) videoBin.getElementByName("videoAppSink");
         videoAppSink.set("emit-signals", true);
-        videoAppSink.enableAsync(false);
+//        videoAppSink.enableAsync(false);
+        videoAppSink.set("async", true);
         
         AppSinkListener videoAppSinkListener = new AppSinkListener(processingQueue,videoCaps,gotCaps);
         videoAppSink.connect((AppSink.NEW_SAMPLE) videoAppSinkListener);   
@@ -125,7 +127,7 @@ public class TestProcessVideoRTSPToMP4 {
 		
 		gotCaps.acquire(1);
 
-		pipeline = Pipeline.launch(
+		pipeline = (Pipeline) Gst.parseLaunch(
 			"appsrc name=videoAppSrc "+
 			"! videoconvert ! video/x-raw,format=I420 "+
 			"! x264enc ! h264parse "+
@@ -244,7 +246,7 @@ public class TestProcessVideoRTSPToMP4 {
         		FrameInfo info = new FrameInfo();
         		info.setCapacity(bb.capacity());
         		info.setPixels(pixels);
-        		info.setFlags(srcBuffer.getFlags());
+        		info.setFlags(NativeFlags.toInt(srcBuffer.getFlags()));
         		info.setDuration(srcBuffer.getDuration());
         		info.setOffset(srcBuffer.getOffset());
         		info.setOffsetEnd(srcBuffer.getOffsetEnd());
@@ -298,11 +300,11 @@ public class TestProcessVideoRTSPToMP4 {
 		private int[] pixels;
 		
 		private int flags;
-		private ClockTime duration;
+		private long duration;
 		private long offset;
 		private long offsetEnd;
-		private ClockTime decodeTimestamp;
-		private ClockTime presentationTimestamp;
+		private long decodeTimestamp;
+		private long presentationTimestamp;
 
 		public int getCapacity() {
 			return capacity;
@@ -322,10 +324,10 @@ public class TestProcessVideoRTSPToMP4 {
 		public void setFlags(int flags) {
 			this.flags = flags;
 		}
-		public ClockTime getDuration() {
+		public long getDuration() {
 			return duration;
 		}
-		public void setDuration(ClockTime duration) {
+		public void setDuration(long duration) {
 			this.duration = duration;
 		}
 		public long getOffset() {
@@ -340,16 +342,16 @@ public class TestProcessVideoRTSPToMP4 {
 		public void setOffsetEnd(long offsetEnd) {
 			this.offsetEnd = offsetEnd;
 		}
-		public ClockTime getDecodeTimestamp() {
+		public long getDecodeTimestamp() {
 			return decodeTimestamp;
 		}
-		public void setDecodeTimestamp(ClockTime decodeTimestamp) {
+		public void setDecodeTimestamp(long decodeTimestamp) {
 			this.decodeTimestamp = decodeTimestamp;
 		}
-		public ClockTime getPresentationTimestamp() {
+		public long getPresentationTimestamp() {
 			return presentationTimestamp;
 		}
-		public void setPresentationTimestamp(ClockTime presentationTimestamp) {
+		public void setPresentationTimestamp(long presentationTimestamp) {
 			this.presentationTimestamp = presentationTimestamp;
 		}	
 	}
@@ -405,7 +407,7 @@ public class TestProcessVideoRTSPToMP4 {
 	            	dstBuffer.map(true).asIntBuffer().put(destPixels);
 	            	dstBuffer.unmap();
 	            	
-	            	dstBuffer.setFlags(info.getFlags());
+	            	dstBuffer.setFlags(NativeFlags.fromInt(BufferFlags.class, info.getFlags()));
 	            	dstBuffer.setDuration(info.getDuration());
 	            	dstBuffer.setOffset(info.getOffset());
 	            	dstBuffer.setOffsetEnd(info.getOffsetEnd());

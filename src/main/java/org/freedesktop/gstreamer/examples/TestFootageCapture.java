@@ -69,8 +69,12 @@ public class TestFootageCapture {
 
 		// The time delaying queue is specified below. Specify a different value or take out the queue
 		// completely for real time capture.
-		Bin videoBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=videoAppSink",true);
-		Bin audioBin = Bin.launch("queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=audioAppSink",true);
+		Bin videoBin = Gst.parseBinFromDescription(
+                        "queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=videoAppSink",
+                        true);
+		Bin audioBin = Gst.parseBinFromDescription(
+                        "queue max-size-time=10000000000 min-threshold-time=5000000000 flush-on-eos=true ! appsink name=audioAppSink",
+                        true);
 
 		AppSink videoAppSink = (AppSink) videoBin.getElementByName("videoAppSink");
 		AppSink audioAppSink = (AppSink) audioBin.getElementByName("audioAppSink");
@@ -128,7 +132,7 @@ public class TestFootageCapture {
 		// encodes a video only MP4 file.
 		boolean hasAudio = (audioCaps.length()>0);
 		if (hasAudio) {
-			pipeline = Pipeline.launch(
+			pipeline = (Pipeline) Gst.parseLaunch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
 				"! videoconvert ! x264enc speed-preset=ultrafast ! h264parse "+
@@ -149,7 +153,7 @@ public class TestFootageCapture {
 		else {
 			System.out.println("RTSP stream has no audio.");
 
-			pipeline = Pipeline.launch(
+			pipeline = (Pipeline) Gst.parseLaunch(
 				"appsrc name=videoAppSrc "+
 				"! rawvideoparse use-sink-caps=true "+
 				"! videoconvert ! x264enc speed-preset=ultrafast ! h264parse "+

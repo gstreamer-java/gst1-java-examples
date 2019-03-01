@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2018 Neil C Smith.
+ * Copyright 2019 Neil C Smith.
  *
  * Copying and distribution of this file, with or without modification,
  * are permitted in any medium without royalty provided the copyright
@@ -27,10 +27,10 @@ import org.freedesktop.gstreamer.Bus;
 import org.freedesktop.gstreamer.Element;
 import org.freedesktop.gstreamer.ElementFactory;
 import org.freedesktop.gstreamer.Gst;
-import org.freedesktop.gstreamer.Message;
-import org.freedesktop.gstreamer.MessageType;
 import org.freedesktop.gstreamer.Structure;
 import org.freedesktop.gstreamer.elements.PlayBin;
+import org.freedesktop.gstreamer.message.Message;
+import org.freedesktop.gstreamer.message.MessageType;
 
 /**
  *
@@ -137,17 +137,17 @@ public class PlayBinVideoPlayer {
                         // Calculate the time offset required to get the level
                         // information in sync with the video display
                         long timeDelay = getTimeOffset(struct);
-                        Gst.getScheduledExecutorService().schedule(
+                        Gst.getExecutor().schedule(
                                 () -> EventQueue.invokeLater(() -> updateLevelDisplay(levels)),
                                 timeDelay, TimeUnit.NANOSECONDS);
                     }
                 }
 
                 private long getTimeOffset(Structure struct) {
-                    long actualTime = playbin.getClock().getTime().toNanos()
-                            - playbin.getBaseTime().toNanos();
-                    long runningTime = ((Long) struct.getValue("running-time"));
-                    long duration = ((Long) struct.getValue("duration"));
+                    long actualTime = playbin.getClock().getTime()
+                            - playbin.getBaseTime();
+                    long runningTime = (long) struct.getValue("running-time");
+                    long duration = (long) struct.getValue("duration");
                     long messageTime = runningTime + (duration / 2);
                     return messageTime - actualTime;
                 }

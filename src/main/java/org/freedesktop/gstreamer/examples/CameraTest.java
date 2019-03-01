@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2018 Neil C Smith.
+ * Copyright 2019 Neil C Smith.
  *
  * Copying and distribution of this file, with or without modification,
  * are permitted in any medium without royalty provided the copyright
@@ -38,7 +38,9 @@ public class CameraTest {
             @Override
             public void run() {
                 SimpleVideoComponent vc = new SimpleVideoComponent();
-                Bin bin = Bin.launch("autovideosrc ! videoconvert ! capsfilter caps=video/x-raw,width=640,height=480", true);
+                Bin bin = Gst.parseBinFromDescription(
+                        "autovideosrc ! videoconvert ! capsfilter caps=video/x-raw,width=640,height=480",
+                        true);
                 pipe = new Pipeline();
                 pipe.addMany(bin, vc.getElement());
                 Pipeline.linkMany(bin, vc.getElement());           

@@ -41,7 +41,7 @@ public class MultiSinkExample {
 
         Gst.init();
         EventQueue.invokeLater(() -> {
-            Bin bin = Bin.launch("tee name=t t. ! queue ! videoconvert ! autovideosink "
+            Bin bin = Gst.parseBinFromDescription("tee name=t t. ! queue ! videoconvert ! autovideosink "
                     + "t. ! queue ! videoconvert ! videoscale ! capsfilter caps=video/x-raw,width=640,height=480 ! appsink name=appsink", true);
 
             SimpleVideoComponent vc = new SimpleVideoComponent((AppSink) bin.getElementByName("appsink"));

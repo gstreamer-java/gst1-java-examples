@@ -27,7 +27,7 @@ public class BatchTranscode
                 "! x264enc pass=4 quantizer=21 ! queue ! mux. " +
                 "mpegtsmux name=mux") +
             " ! filesink name=dst";
-        Pipeline pipe = Pipeline.launch(pipeSpec);
+        Pipeline pipe = (Pipeline) Gst.parseLaunch(pipeSpec);
 
         pipe.getElementByName("src").set("location", srcVideo);
         pipe.getElementByName("dst").set("location", outFile);
