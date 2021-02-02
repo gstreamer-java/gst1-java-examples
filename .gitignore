@@ -5,6 +5,7 @@
 *.war
 *.ear
 /target/
+/archive/target/
 
 # Eclipse Files #
 .classpath
