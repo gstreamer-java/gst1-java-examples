@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2019 Neil C Smith / Tim-Philipp Müller
+ * Copyright 2021 Neil C Smith / Tim-Philipp Müller
  *
  * Copying and distribution of this file, with or without modification,
  * are permitted in any medium without royalty provided the copyright
@@ -43,10 +43,13 @@ public class TextColorControlExample {
         text.set("halignment", 4);
         text.set("valignment", 3);
         
+        Element capsfilter = ElementFactory.make("capsfilter", "caps");
+        capsfilter.setAsString("caps", "video/x-raw, width=800, height=600");
+        
         Element sink = ElementFactory.make("autovideosink", "sink");
         
-        pipe.addMany(src, text, sink);
-        Pipeline.linkMany(src, text, sink);
+        pipe.addMany(src, text, capsfilter, sink);
+        Pipeline.linkMany(src, text, capsfilter, sink);
         
         
         LFOControlSource csXPos = new LFOControlSource();

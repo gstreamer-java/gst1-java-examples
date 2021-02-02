@@ -9,12 +9,12 @@
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
-            <version>5.2.0</version>
+            <version>5.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.freedesktop.gstreamer</groupId>
             <artifactId>gst1-java-core</artifactId>
-            <version>1.1.0</version>
+            <version>1.4.0</version>
         </dependency>
     </dependencies>
     <properties>
