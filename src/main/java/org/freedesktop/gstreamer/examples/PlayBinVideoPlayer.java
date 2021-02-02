@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2019 Neil C Smith.
+ * Copyright 2021 Neil C Smith.
  *
  * Copying and distribution of this file, with or without modification,
  * are permitted in any medium without royalty provided the copyright
@@ -14,6 +14,7 @@ package org.freedesktop.gstreamer.examples;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.Box;
@@ -26,9 +27,11 @@ import javax.swing.Timer;
 import org.freedesktop.gstreamer.Bus;
 import org.freedesktop.gstreamer.Element;
 import org.freedesktop.gstreamer.ElementFactory;
+import org.freedesktop.gstreamer.Format;
 import org.freedesktop.gstreamer.Gst;
 import org.freedesktop.gstreamer.Structure;
 import org.freedesktop.gstreamer.elements.PlayBin;
+import org.freedesktop.gstreamer.event.SeekFlags;
 import org.freedesktop.gstreamer.message.Message;
 import org.freedesktop.gstreamer.message.MessageType;
 
@@ -80,24 +83,26 @@ public class PlayBinVideoPlayer {
             playButton.addActionListener(e -> playbin.play());
             JButton pauseButton = new JButton("Pause");
             pauseButton.addActionListener(e -> playbin.pause());
-            
+
             // position slider
             JSlider position = new JSlider(0, 1000);
             position.addChangeListener(e -> {
                 if (position.getValueIsAdjusting()) {
-                    long dur = playbin.queryDuration(TimeUnit.NANOSECONDS);
-                    long pos = playbin.queryPosition(TimeUnit.NANOSECONDS);
+                    long dur = playbin.queryDuration(Format.TIME);
+                    long pos = playbin.queryPosition(Format.TIME);
                     if (dur > 0) {
                         double relPos = position.getValue() / 1000.0;
-                        playbin.seek((long) (relPos * dur), TimeUnit.NANOSECONDS);
-                    } 
+                        playbin.seekSimple(Format.TIME,
+                                EnumSet.of(SeekFlags.FLUSH, SeekFlags.KEY_UNIT),
+                                (long) (relPos * dur));
+                    }
                 }
             });
             // sync slider position to video when not dragging
             new Timer(50, e -> {
                 if (!position.getValueIsAdjusting()) {
-                    long dur = playbin.queryDuration(TimeUnit.NANOSECONDS);
-                    long pos = playbin.queryPosition(TimeUnit.NANOSECONDS);
+                    long dur = playbin.queryDuration(Format.TIME);
+                    long pos = playbin.queryPosition(Format.TIME);
                     if (dur > 0) {
                         double relPos = (double) pos / dur;
                         position.setValue((int) (relPos * 1000));
@@ -129,9 +134,9 @@ public class PlayBinVideoPlayer {
 
                 @Override
                 public void busMessage(Bus arg0, Message message) {
-                    Structure struct = message.getStructure();
                     if (message.getType() == MessageType.ELEMENT
                             && message.getSource().getName().startsWith("level")) {
+                        Structure struct = message.getStructure();
                         // We can get either rms or peak
                         double[] levels = struct.getDoubles("peak");
                         // Calculate the time offset required to get the level
@@ -141,6 +146,7 @@ public class PlayBinVideoPlayer {
                                 () -> EventQueue.invokeLater(() -> updateLevelDisplay(levels)),
                                 timeDelay, TimeUnit.NANOSECONDS);
                     }
+                    message.dispose();
                 }
 
                 private long getTimeOffset(Structure struct) {
