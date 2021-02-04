@@ -18,6 +18,8 @@ import org.freedesktop.gstreamer.Version;
 
 /**
  * Simply launches a test GStreamer pipeline using the Java bindings.
+ * 
+ * @author Neil C Smith ( https://www.codelerity.com )
  */
 public class BasicPipeline {
 
