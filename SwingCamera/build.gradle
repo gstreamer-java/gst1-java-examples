@@ -5,7 +5,7 @@ apply plugin: 'application'
 mainClassName = 'org.freedesktop.gstreamer.examples.SwingCamera'
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
