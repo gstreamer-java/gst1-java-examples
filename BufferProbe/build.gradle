@@ -1,0 +1,15 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+
+mainClassName = 'org.freedesktop.gstreamer.examples.BufferProbe'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'net.java.dev.jna:jna:5.6.0'
+    implementation 'net.java.dev.jna:jna-platform:5.6.0'
+    implementation 'org.freedesktop.gstreamer:gst1-java-core:1.4.0'
+}
