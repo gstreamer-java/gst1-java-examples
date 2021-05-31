@@ -22,17 +22,25 @@ Most examples work with JDK 8+. The JavaFX integration example requires JDK 11+
 
 ## Examples
 
-- **BasicPipeline** : getting started running a video test source into a GStreamer
+**BasicPipeline** : getting started running a video test source into a GStreamer
 output window.
-- **Controllers** : configuring controllers to control element properties (ported
-from an upstream C example).
-- **FXCamera** : using a camera (or test source) inside a JavaFX application,
-using `gst1-java-fx`.
-- **SwingCamera** : using a camera (or test source) inside a Swing application,
-using `gst1-java-swing`.
-- **SwingPlayer** : a simple media player with Swing UI, including file selection,
+
+**SwingCamera** : using a camera (or test source) inside a Swing application,
+using `gst1-java-swing`.  
+**SwingPlayer** : a simple media player with Swing UI, including file selection,
 playback controls, seeking and volume meters.
-- **archive** : all the previously available examples, some of which have not yet
+
+**FXCamera** : using a camera (or test source) inside a JavaFX application,
+using `gst1-java-fx`.  
+**FXPlayer** : a simple media player with JavaFX UI, including file selection,
+playback controls, seeking and volume meters.
+
+**BufferProbe** : using a buffer probe to draw an animation on top of the video
+stream using Java2D.  
+**Controllers** : configuring controllers to control element properties (ported
+from an upstream C example).
+
+**archive** : all the previously available examples, some of which have not yet
 been adapted into self-contained example projects.
 
 Inside each example there is an identical `Utils.java` file that contains some
