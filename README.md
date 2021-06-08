@@ -39,6 +39,12 @@ playback controls, seeking and volume meters.
 stream using Java2D.  
 **Controllers** : configuring controllers to control element properties (ported
 from an upstream C example).
+**WebRTCSendRecv** : example of sending and receiving via WebRTC using the test
+page at https://webrtc.nirbheek.in This is the test server used in upstream
+GStreamer examples. You may need to configure permissions in the browser to
+always allow audio for that site. You need to pass in the session ID from the
+page on the CLI. If running in the terminal via Gradle, it is recommended to
+use `./gradlew --console=plain run`.
 
 **archive** : all the previously available examples, some of which have not yet
 been adapted into self-contained example projects.
