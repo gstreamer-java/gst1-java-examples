@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HLS GStreamer Java example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <script src="/webjars/hls.js/1.0.7/dist/hls.min.js"></script>
+  <center>
+    <h1>HLS GStreamer Java example</h1>
+    <p><em>Video may take up to 20s to appear from server start. Playlist file is
+        only created after some segments are available.<br>The default latency is
+        quite high (15-30s). This can be lowered using <code>hlssink2</code> element
+        properties and <code>hls.js</code> configuration.</em></p>
+    <video height="720" id="video" controls></video>
+  </center>
+  <script>
+    var video = document.getElementById('video');
+    var source = '/hls/playlist.m3u8';
+    if (Hls.isSupported()) {
+      var hls = new Hls({
+        debug: true,
+        manifestLoadingMaxRetry: 60,
+        manifestLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetryTimeout: 1000,
+        liveDurationInfinity: true
+      });
+      hls.loadSource(source);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+        video.muted = true;
+        video.play();
+      });
+    }
+    // hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
+    // When the browser has built-in HLS support (check using `canPlayType`), we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video element throught the `src` property.
+    // This is using the built-in support of the plain video element, without using hls.js.
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = source;
+      video.addEventListener('canplay', function () {
+        video.play();
+      });
+    }
+  </script>
+</body>
+</html>
