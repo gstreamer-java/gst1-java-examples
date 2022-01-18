@@ -1,6 +1,6 @@
 plugins {
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.9'
+    id 'org.openjfx.javafxplugin' version '0.0.11'
 }
 
 mainClassName = 'org.freedesktop.gstreamer.examples.FXPlayer'
@@ -10,7 +10,7 @@ repositories {
 }
 
 javafx {
-    version = "16"
+    version = "17"
     modules = [ 'javafx.controls' ]
 }
 
