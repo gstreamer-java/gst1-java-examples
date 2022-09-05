@@ -86,7 +86,7 @@ public class BufferProbe {
          * The named Identity element can be acquired from the pipeline by name
          * and the probe attached to its sink pad.
          */
-        pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
+        pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoscale ! videoconvert ! "
                 + caps + " ! identity name=identity ! videoconvert ! autovideosink");
         Element identity = pipeline.getElementByName("identity");
         identity.getStaticPad("sink")
